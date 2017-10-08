@@ -23,9 +23,7 @@ export class UsageService {
 
     // Table Names
     private tablesDictionary = {
-        minute: 'Usage',
         daily: 'HILowDaily',
-        monthly: 'HILowMonthly'
     };
 
     // Mode Function Names

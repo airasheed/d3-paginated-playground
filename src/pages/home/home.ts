@@ -492,6 +492,44 @@ export class HomePage {
         }
     
     
+        
+    
+        /**
+         * @name zoomed
+         * @description Callback for zoom functionality.
+         */
+        private zoomed = () => {
+            // if(this.isZooming){
+            //     return;
+            // }
+            let t = d3.event.transform;
+            console.log(t);
+            if (isNaN(t.k)) return;
+            this.xScale.domain(t.rescaleX(this.x2Scale).domain());
+            this.drawXAxisTicks();
+            
+            // Do we change the mode
+            if(this.isChangeMode()){
+                console.log('changedMode');
+                this.getData().subscribe((x:any)=>{
+                    this.data = x;
+                    this.changeDataSource(this.data);
+                });
+            } else if(this.isRefreshThreshold()) {
+                console.log('refreshing threshold');
+                this.isZooming = true;
+                this.triggerZoomLoader('show');
+                this.getData().subscribe((x:any)=>{
+                    this.data = x;
+                    this.changeDataSource(this.data);
+                });
+            } else {
+                console.log('didn\'t do anything');
+                // plainly render the graph updating it regularly
+                this.reDrawGraphElements();
+            }
+        }
+
         private getData(){
             // if the mode is yearly then return the data immediately
             // return immediate data because we are not buffering data right now
@@ -541,43 +579,7 @@ export class HomePage {
                 return this.mode === 'minute' ? this.usageService.queryMin(query) : this.usageService.queryDaily(query);
         }
     
-    
-        /**
-         * @name zoomed
-         * @description Callback for zoom functionality.
-         */
-        private zoomed = () => {
-            // if(this.isZooming){
-            //     return;
-            // }
-            let t = d3.event.transform;
-            console.log(t);
-            if (isNaN(t.k)) return;
-            this.xScale.domain(t.rescaleX(this.x2Scale).domain());
-            this.drawXAxisTicks();
-            
-            // Do we change the mode
-            if(this.isChangeMode()){
-                console.log('changedMode');
-                this.getData().subscribe((x:any)=>{
-                    this.data = x;
-                    this.changeDataSource(this.data);
-                });
-            } else if(this.isRefreshThreshold()) {
-                console.log('refreshing threshold');
-                this.isZooming = true;
-                this.triggerZoomLoader('show');
-                this.getData().subscribe((x:any)=>{
-                    this.data = x;
-                    this.changeDataSource(this.data);
-                });
-            } else {
-                console.log('didn\'t do anything');
-                // plainly render the graph updating it regularly
-                this.reDrawGraphElements();
-            }
-        }
-    
+        
         /**
          * @name triggerZoomLoader
          * @description Hide/Show the zoom loader
