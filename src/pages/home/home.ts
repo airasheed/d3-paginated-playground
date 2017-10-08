@@ -354,7 +354,7 @@ export class HomePage {
         private initializeZoom = () => {
             this.zoom = d3.zoom()
                 .scaleExtent([1, this.numOfDaysInDomain * 12])
-                .translateExtent([[0, 0], [this.width *2, this.height]])
+                .translateExtent([[0, 0], [this.width, this.height]])
                 .extent([[0, 0], [this.width, this.height]])
                 .on("zoom", this.zoomed)
             // setup zoom on svg
