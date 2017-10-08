@@ -30,11 +30,9 @@ export class UsageLayer {
         this.canvasMode = canvasMode;
         this.draw();
     }
-    /**
-     * @name draw
-     * @description Draws all of the usage and cost elements.
-     */
-    draw() {
+
+    createGenerator(scales){
+        this.scales = scales;
         this.generators = {
             line: d3.line()
                 .curve(d3.curveMonotoneX)
@@ -46,7 +44,14 @@ export class UsageLayer {
                 .y0(this.height)
                 .y1((d: any) => this.scales.y(d.kWh))
         }
+    }
 
+    /**
+     * @name draw
+     * @description Draws all of the usage and cost elements.
+     */
+    draw() {
+        this.createGenerator(this.scales);
         this.paths = {
             area:  this.canvas.append("path"),
             line: this.canvas.append('path')
@@ -95,6 +100,11 @@ export class UsageLayer {
         
         // Redraw Paths w/ new data source
         if (data && scales) {
+            console.group('redraw data && scales');
+            console.log(data[0],data[data.length-1]);
+            console.log('new domain',scales.x.domain());
+            this.createGenerator(scales);
+            
             this.scales = scales;
             this.data = data;
             this.paths.area.datum(data).attr("d", this.generators.area);
@@ -110,7 +120,9 @@ export class UsageLayer {
                 .on('click', this.handleMouseOver);
             return;
         }
-
+        console.log('redraw data',this.data[0]);
+        console.log('redraw data',this.data[this.data.length-1]);
+        console.log()
         // draw with old data source
         this.paths.area.attr("d", this.generators.area);
         this.paths.line.attr('d', this.generators.line);

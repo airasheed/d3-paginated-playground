@@ -29,7 +29,6 @@ export class HomePage {
         minData: any;
     
         //private properties
-    
         /**
          * Lets the Component know which whether or not to initialize the imported graphs
          */
@@ -71,14 +70,23 @@ export class HomePage {
             let query = this.usageService.queryBuilder('daily',"SELECT * FROM ${{tablename}} where date(kDateTime) > date('" + queryDates.start + "') AND date(kDateTime) <= date('" + queryDates.end + "')");
             
             this.viewEl = d3.select(this.el.nativeElement);
-            this.usageService.queryDaily(query).subscribe((x)=>{
-                console.log('data returned',x);
-                this.initializeGraph(x,this.billPeriod,this.viewEl,this.content);
-            },(err)=>{
-                console.log(err);
-            })
+            this.usageService.isTableEmpty().subscribe((isEmpty)=>{
+                let o;
+                if(isEmpty){
+                    o =  this.usageService.getDaily().flatMap(()=>{
+                        return this.usageService.queryDaily(query);
+                    });
+                } else {
+                    o =  this.usageService.queryDaily(query);
+                }
+                o.subscribe((x)=>{
+                    console.log('data returned',x);
+                    this.initializeGraph(x,this.billPeriod,this.viewEl,this.content);
+                },(err)=>{
+                    console.log(err);
+                });
+            });
         }
-        
         /**
          * @name initializeGraph
          * @description Initialize the graph, main canvas (g element), and layers.
@@ -308,6 +316,8 @@ export class HomePage {
     
             this.drawXAxisTicks();
             this.yScale.domain([0, d3.max(data, (d: any) => { return d.kWh; })]);
+            let xDomain = d3.extent(this.data, (d: any) => { return Utils.getDataPointDate(d); });
+            this.xScale.domain(xDomain);
             this.usageLayer.redraw(this.mode, data, { x: this.xScale, y: this.yScale });
     
             if (this.mode != 'minute') {
@@ -344,7 +354,7 @@ export class HomePage {
         private initializeZoom = () => {
             this.zoom = d3.zoom()
                 .scaleExtent([1, this.numOfDaysInDomain * 12])
-                .translateExtent([[0, 0], [this.width, this.height]])
+                .translateExtent([[0, 0], [this.width *2, this.height]])
                 .extent([[0, 0], [this.width, this.height]])
                 .on("zoom", this.zoomed)
             // setup zoom on svg
@@ -487,7 +497,10 @@ export class HomePage {
             domain = this.xScale.domain();
             x1Diff = moment(domain[0]).diff(this.data[0].kDateTime,threshold.unit);
             x2Diff = moment(this.data[this.data.length-1].kDateTime).diff(domain[1],threshold.unit);
-    
+            console.log('xDomain',this.xScale.domain());
+            console.log('x1Diff',x1Diff);
+            console.log('x2Diff',x2Diff);
+            console.log('threshold.value',threshold.value);
             return (x1Diff <= threshold.value || x2Diff <= threshold.value);
         }
     
@@ -499,9 +512,9 @@ export class HomePage {
          * @description Callback for zoom functionality.
          */
         private zoomed = () => {
-            // if(this.isZooming){
-            //     return;
-            // }
+            if(this.isZooming){
+                return;
+            }
             let t = d3.event.transform;
             console.log(t);
             if (isNaN(t.k)) return;
@@ -520,6 +533,7 @@ export class HomePage {
                 this.isZooming = true;
                 this.triggerZoomLoader('show');
                 this.getData().subscribe((x:any)=>{
+                    console.log(x);
                     this.data = x;
                     this.changeDataSource(this.data);
                 });
@@ -561,8 +575,7 @@ export class HomePage {
                 // calculate buffer
                 if(this.mode == 'daily'){
                     bufferUnit = 'days';
-                    distanceBtwnXminXmax = xMax.diff(xMin,bufferUnit);
-                    buffer = 100;
+                    buffer = 15;
                 } else if (this.mode == 'minute'){
                     bufferUnit = 'seconds';
                     distanceBtwnXminXmax = xMax.diff(xMin,bufferUnit);
@@ -576,7 +589,7 @@ export class HomePage {
     
                 let query = this.usageService.queryBuilder(this.mode,"SELECT * FROM ${{tablename}} where date(kDateTime) > date('" + bufferXmin.format() + "') AND date(kDateTime) <= date('" + bufferXmax.format() + "')");
                 
-                return this.mode === 'minute' ? this.usageService.queryMin(query) : this.usageService.queryDaily(query);
+                return this.mode === 'minute' ? this.usageService.queryMin(query) : this.usageService.queryDaily(query).delay(1000);
         }
     
         
